@@ -1,5 +1,7 @@
 ﻿from __future__ import annotations
 import hashlib, json, logging, math, os
+from dotenv import load_dotenv
+load_dotenv()
 from dataclasses import dataclass
 from typing import Any
 
@@ -41,7 +43,7 @@ class EvidenceIndex:
         return len(self.documents)
 
     def _embed(self, texts):
-        if os.getenv("OPENAI_API_KEY"):
+        if os.getenv("OPENAI_API_KEY") and os.getenv("CHILLI_DISABLE_OPENAI") != "1":
             try:
                 from openai import OpenAI
                 model = os.getenv("OPENAI_EMBEDDING_MODEL", "text-embedding-3-large")
@@ -72,4 +74,6 @@ def records_from_workbook(data):
             records.append({"id": f"{sheet}:{index}", "text": f"{sheet} | {stage} | {text}",
                             "metadata": {"sheet": sheet, "row": index, "stage": stage, "date": row.get("Date"), "source": data.source}})
     return records
+
+
 
