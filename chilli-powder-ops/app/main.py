@@ -119,6 +119,44 @@ def events(stage:str=Query("",max_length=40),sheet:str=Query("",max_length=40),l
             if stage and row.get("Stage")!=stage: continue
             out.append({"sheet":name,"row":i,"stage":row.get("Stage"),"date":row.get("Date"),"payload":row})
     out.sort(key=lambda x:(x.get("date") or "",x["sheet"],x["row"]),reverse=True); return {"events":out[:limit],"total":len(out),"stage":stage or None}
+def rca_evidence(stage):
+    data=load_workbook(); ms=metrics(data); analysis=rca(stage,ms[stage],data)
+    rows=[]
+    for sheet,items in data.rows.items():
+        for row_number,row in enumerate(items,2):
+            if row.get("Stage") != stage: continue
+            rows.append({"sheet":sheet,"row":row_number,"date":row.get("Date"),"kind":sheet,"payload":row})
+    rows.sort(key=lambda x:(x.get("date") or "",x["sheet"],x["row"]))
+    output=[r for r in rows if r["sheet"]=="1_Output"]
+    settings=[r for r in rows if r["sheet"]=="3_Settings"]
+    stops=[r for r in rows if r["sheet"]=="2_Stops"]
+    changes=[r for r in rows if r["sheet"]=="4_Changes"]
+    responses=[r for r in rows if r["sheet"]=="5_Response"]
+    supporting=[]
+    for r in settings+stops+changes+responses:
+        p=r["payload"]; parameter=str(p.get("Parameter", ""))
+        if r["sheet"] in ("2_Stops","4_Changes","5_Response") or parameter in ("Hammer set run hours","Sieve pass at 40 mesh","Dust extraction suction at filler","Foreign matter and stalks in raw sample","Reject bin since last check"):
+            supporting.append(r)
+    output_series=[{"label":f"{r.get('date')} {r['payload'].get('Hour','')}","good":float(r['payload'].get('Good Count') or 0),"target":float(r['payload'].get('Target') or 0),"rejects":float(r['payload'].get('Reject Count') or 0)} for r in output]
+    stop_by_stage=[]
+    for s in STAGES:
+        total=sum(float(str(x.get("Minutes",0)).replace(",","")) for x in data.rows["2_Stops"] if x.get("Stage")==s and str(x.get("Minutes","")).replace(",","").replace(".","",1).isdigit())
+        stop_by_stage.append({"label":s,"minutes":total})
+    def setting_series(term):
+        out=[]
+        for r in settings:
+            if term.lower() in str(r["payload"].get("Parameter","")).lower():
+                try: value=float(str(r["payload"].get("Reading","")).replace(",",""))
+                except ValueError: continue
+                out.append({"label":r.get("date") or r["sheet"]+":"+str(r["row"]),"value":value,"reference":f"{r['sheet']}:{r['row']}"})
+        return out
+    return {"stage":stage,"analysis":analysis,"supporting_rows":supporting,"timeline":rows,"relationships":[{"from":f"{r['sheet']}:{r['row']}","to":f"1_Output:{output[0]['row']}" if output else None,"reason":"same stage and operating window"} for r in supporting[:20]],"charts":{"output_vs_target":output_series,"stop_minutes_by_stage":stop_by_stage,"sieve_pass":setting_series("Sieve pass"),"hammer_run_hours":setting_series("Hammer set run hours")},"actions":[{"action":a,"owner":o} for a,o in zip(analysis["actions"],analysis["escalate_to"]+["Line owner"]*len(analysis["actions"]))]}
+
+@app.get("/api/rca/{stage}/evidence")
+def rca_evidence_endpoint(stage:str,x_api_key:str|None=Header(default=None)):
+    auth(x_api_key)
+    if stage not in STAGES: raise HTTPException(422,"unknown stage")
+    return rca_evidence(stage)
 @app.post("/api/conversation")
 def conversation(q:Question,x_api_key:str|None=Header(default=None)):
     auth(x_api_key); data,hits=evidence(q.question,q.stage,q.top_k,q.filters); ms=metrics(data); analysis=rca(q.stage,ms[q.stage],data)
@@ -140,6 +178,7 @@ def embedding_status(): return {"provider":index.provider,"model":index.model,"d
 @app.post("/api/embeddings/index")
 def build_embeddings(x_api_key:str|None=Header(default=None)):
     auth(x_api_key); global index_source; data=load_workbook(); records=records_from_workbook(data); count=index.build(records); index_source=data.fingerprint; stored=persist_ingestion(data,records,validate(data)); return {"indexed":count,"source":data.source,"provider":index.provider,"model":index.model,"ingestion":stored}
+
 
 
 

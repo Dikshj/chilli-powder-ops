@@ -33,3 +33,9 @@ def test_ingestion_reports_duplicate_fingerprint():
 def test_postgres_end_to_end_ingestion():
     body=client.post('/api/ingest').json()
     assert body['ingestion']['storage']=='postgresql'
+
+def test_rca_evidence_contains_drilldown_series():
+    body=client.get('/api/rca/Grinding/evidence').json()
+    assert body['supporting_rows']
+    assert body['charts']['output_vs_target']
+    assert set(body['charts']) >= {'stop_minutes_by_stage','sieve_pass','hammer_run_hours'}
