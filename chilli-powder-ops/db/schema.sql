@@ -1,0 +1,10 @@
+﻿CREATE EXTENSION IF NOT EXISTS vector;
+CREATE TABLE IF NOT EXISTS plans (parameter TEXT PRIMARY KEY, value DOUBLE PRECISION, unit TEXT, source TEXT DEFAULT 'Plan');
+CREATE TABLE IF NOT EXISTS floor_events (id BIGSERIAL PRIMARY KEY, sheet TEXT NOT NULL, event_date DATE, stage TEXT NOT NULL, event_time TEXT, payload JSONB NOT NULL, ingested_at TIMESTAMPTZ DEFAULT now(), UNIQUE(sheet,event_date,stage,event_time,payload));
+CREATE INDEX IF NOT EXISTS floor_events_stage_date ON floor_events(stage,event_date);
+CREATE TABLE IF NOT EXISTS analyses (id BIGSERIAL PRIMARY KEY, stage TEXT NOT NULL, event_date DATE, status TEXT NOT NULL, payload JSONB NOT NULL, created_at TIMESTAMPTZ DEFAULT now());
+CREATE TABLE IF NOT EXISTS ingestion_history (id BIGSERIAL PRIMARY KEY, fingerprint TEXT UNIQUE NOT NULL, source TEXT NOT NULL, record_count INTEGER NOT NULL, error_count INTEGER NOT NULL, ingested_at TIMESTAMPTZ DEFAULT now());
+CREATE TABLE IF NOT EXISTS rag_documents (document_id TEXT PRIMARY KEY, source TEXT NOT NULL, sheet TEXT NOT NULL, row_number INTEGER NOT NULL, stage TEXT NOT NULL, event_date DATE, content TEXT NOT NULL, metadata JSONB NOT NULL, embedding vector(3072) NOT NULL, updated_at TIMESTAMPTZ DEFAULT now());
+CREATE INDEX IF NOT EXISTS rag_documents_metadata_gin ON rag_documents USING GIN(metadata);
+CREATE INDEX IF NOT EXISTS rag_documents_stage_date ON rag_documents(stage,event_date);
+CREATE INDEX IF NOT EXISTS rag_documents_embedding_hnsw ON rag_documents USING hnsw (embedding vector_cosine_ops);
