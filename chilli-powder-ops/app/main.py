@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 import hashlib, json, logging, os, time
 from dotenv import load_dotenv
 load_dotenv()
@@ -100,6 +100,13 @@ async def limits(request:Request, call_next):
     q.append(now); return await call_next(request)
 @app.get("/")
 def home(): return FileResponse(ROOT/"web"/"index.html")
+@app.get("/api/workbook")
+def workbook():
+    """Publicly download the workbook used by the floor-operations demo."""
+    data=load_workbook()
+    if not data.source or data.source == "missing workbook":
+        raise HTTPException(404, "workbook not available")
+    return FileResponse(data.source, media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", filename="Chilli_Powder_Floor_Data_Collection.xlsx")
 @app.get("/api/health")
 def health(x_api_key: str|None=Header(default=None)):
     auth(x_api_key); data,_,_,errors=snapshot(); return {"ok":True,"source":data.source,"validation_errors":len(errors),"answer_key_loaded":False,"postgres":bool(os.getenv("DATABASE_URL")),"skipped_rows":data.skipped_rows}

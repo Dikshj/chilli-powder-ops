@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 import hashlib, os
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
@@ -6,7 +6,9 @@ from pathlib import Path
 from zipfile import ZipFile
 from xml.etree import ElementTree as ET
 
-XLSX = Path(os.getenv("CHILLI_XLSX", r"C:\Users\diks2\Downloads\Chilli_Powder_Floor_Data_Collection.xlsx"))
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+DEFAULT_XLSX = PROJECT_ROOT / "data" / "Chilli_Powder_Floor_Data_Collection.xlsx"
+XLSX = Path(os.getenv("CHILLI_XLSX", str(DEFAULT_XLSX)))
 NS = {"m": "http://schemas.openxmlformats.org/spreadsheetml/2006/main"}
 RELNS = "http://schemas.openxmlformats.org/officeDocument/2006/relationships"
 SHEETS = ["1_Output", "2_Stops", "3_Settings", "4_Changes", "5_Response"]
