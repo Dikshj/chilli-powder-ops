@@ -77,7 +77,7 @@ class SupervisorReason(BaseModel):
     time_window: str = ""
     target: float
     actual: float
-    reason_category: Literal["Manpower", "Machine", "Material", "Method / Process"]
+    reason_category: Literal["Manpower", "Machine", "Material", "Process", "Method / Process"]
     reason_description: str = Field(min_length=1)
     supervisor: str
     submitted_at: datetime
