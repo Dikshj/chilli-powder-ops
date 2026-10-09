@@ -34,3 +34,18 @@ The implementation deliberately keeps the supplied five-sheet floor model: `1_Ou
 
 
 The workbook is intentionally stored in the public repository under data/ and served by /api/workbook. Do not put secrets, credentials, or private operational data in this file.
+
+
+## Comparison workflow
+
+The workflow APIs support client input tiers (manual, erp, sensor), canonical production records, versioned targets with tolerances, idempotent incident creation, supervisor reasons, evidence-strength scoring, and an RC-01 through RC-13 registry awaiting definitions. The current public /api/summary dashboard remains compatible with the original floor workbook.
+
+Workflow endpoints:
+
+- PUT /api/workflow/capabilities/{client_id} - configure the client input tier
+- POST /api/workflow/targets - define an owner-approved target and tolerance
+- POST /api/workflow/import - import the packaged Excel baseline
+- GET /api/workflow/incidents - list below-target incidents
+- POST /api/workflow/incidents/{incident_id}/reason - submit a supervisor observation
+- GET /api/workflow/incidents/{incident_id} - inspect evidence assessment
+- GET /api/workflow/rca-registry - inspect unconfigured RC categories

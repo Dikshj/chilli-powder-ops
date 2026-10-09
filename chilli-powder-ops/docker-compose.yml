@@ -1,4 +1,4 @@
-﻿services:
+services:
   db:
     image: pgvector/pgvector:pg16
     environment:
@@ -9,6 +9,7 @@
     volumes:
       - chilli_pgdata:/var/lib/postgresql/data
       - ./db/schema.sql:/docker-entrypoint-initdb.d/001_schema.sql:ro
+      - ./db/workflow_schema.sql:/docker-entrypoint-initdb.d/002_workflow_schema.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U chilli -d chilli_ops"]
       interval: 5s

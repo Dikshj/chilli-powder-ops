@@ -194,3 +194,54 @@ def build_embeddings(x_api_key:str|None=Header(default=None)):
 
 
 
+
+@app.get("/api/workflow/capabilities")
+def workflow_capabilities():
+    return {"items": [x.model_dump(mode="json") for x in CAPABILITIES.values()]}
+
+@app.put("/api/workflow/capabilities/{client_id}")
+def workflow_capabilities_upsert(client_id: str, payload: ClientCapabilities):
+    if payload.client_id != client_id:
+        raise HTTPException(422, "client_id in path and body must match")
+    return configure_capabilities(payload).model_dump(mode="json")
+
+@app.post("/api/workflow/targets")
+def workflow_target_create(payload: TargetDefinition):
+    return add_target(payload).model_dump(mode="json")
+
+@app.get("/api/workflow/targets")
+def workflow_targets(client: str | None = None):
+    return {"items": [x.model_dump(mode="json") for x in TARGETS if not client or x.client == client]}
+
+@app.post("/api/workflow/records")
+def workflow_record_create(payload: CanonicalProductionRecord):
+    return add_record(payload).model_dump(mode="json")
+
+@app.post("/api/workflow/import")
+def workflow_import(client: str = "demo"):
+    return import_workbook(load_workbook(), client=client)
+
+@app.get("/api/workflow/incidents")
+def workflow_incidents(status: str | None = None):
+    items = list(INCIDENTS.values())
+    return {"items": [x for x in items if not status or x["status"] == status]}
+
+@app.get("/api/workflow/incidents/{incident_id}")
+def workflow_incident(incident_id: str):
+    if incident_id not in INCIDENTS:
+        raise HTTPException(404, "incident not found")
+    return {**INCIDENTS[incident_id], "evidence_assessment": assess_incident(incident_id).model_dump(mode="json")}
+
+@app.post("/api/workflow/incidents/{incident_id}/reason")
+def workflow_reason(incident_id: str, payload: SupervisorReason):
+    if payload.incident_id != incident_id:
+        raise HTTPException(422, "incident_id in path and body must match")
+    try:
+        return submit_reason(incident_id, payload)
+    except KeyError:
+        raise HTTPException(404, "incident not found")
+
+@app.get("/api/workflow/rca-registry")
+def workflow_rca_registry():
+    from .workflow import rca_registry
+    return {"items": [x.model_dump(mode="json") for x in rca_registry()]}
