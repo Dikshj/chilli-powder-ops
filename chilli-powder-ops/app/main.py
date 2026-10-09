@@ -203,7 +203,10 @@ def workflow_capabilities():
 def workflow_capabilities_upsert(client_id: str, payload: ClientCapabilities):
     if payload.client_id != client_id:
         raise HTTPException(422, "client_id in path and body must match")
-    return configure_capabilities(payload).model_dump(mode="json")
+    try:
+        return configure_capabilities(payload).model_dump(mode="json")
+    except ValueError as exc:
+        raise HTTPException(422, str(exc))
 
 @app.post("/api/workflow/targets")
 def workflow_target_create(payload: TargetDefinition):

@@ -19,6 +19,15 @@ class ClientCapabilities(BaseModel):
     client_id: str
     input_tier: InputTier = "manual"
     enabled_sources: list[str] = Field(default_factory=lambda: ["excel"])
+    sync_method: Literal["polling", "webhook", "file_export"] = "polling"
+    polling_interval_seconds: int = Field(default=300, ge=60)
+    timezone: str = "UTC"
+    field_mapping: dict[str, str] = Field(default_factory=dict)
+    read_only: bool = True
+
+    @classmethod
+    def default_erp(cls, client_id: str) -> "ClientCapabilities":
+        return cls(client_id=client_id, input_tier="erp", enabled_sources=["erp"], sync_method="polling", polling_interval_seconds=300, timezone="UTC", field_mapping={"work_center":"line", "production_date":"timestamp", "material_code":"product", "confirmed_qty":"quantity", "uom":"unit", "shift_code":"shift"}, read_only=True)
 
 
 class CanonicalProductionRecord(BaseModel):
